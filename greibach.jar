@@ -1,0 +1,88 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Greibach {
+    public static void main(String[] args) {
+        // Define as produçoes da gramatica
+        Map<String, List<String>> cfgProductions = new HashMap<>();
+        cfgProductions.put("S", List.of("AB", "CSB"));
+        cfgProductions.put("A", List.of("aB", "C"));
+        cfgProductions.put("B", List.of("bbB", "b"));
+        // converte CFG para GNF
+        Map<String, List<String>> gnfProductions = converterParaFormaNormalGreibach(cfgProductions);
+        // Imprime as producoes na greibuch
+        for (Map.Entry<String, List<String>> entry : gnfProductions.entrySet()) {
+            String naoTerminal = entry.getKey();
+            List<String> producoes = entry.getValue();
+            for (String producao : producoes) {
+                System.out.println(naoTerminal + " -> " + producao);
+            }
+        }
+    }
+    public static Map<String, List<String>> converterParaFormaNormalGreibach(Map<String, List<String>> cfgProductions) {
+        Map<String, List<String>> gnfProductions = new HashMap<>();
+        // adiciona um novo simbolo inicial
+        String simboloInicial = "S0";
+        gnfProductions.put(simboloInicial, List.of(cfgProductions.keySet().iterator().next()));
+        // elimina  não-terminais que geram um terminal
+        for (Map.Entry<String, List<String>> entry : cfgProductions.entrySet()) {
+            String naoTerminal = entry.getKey();
+            List<String> producoes = entry.getValue();
+            List<String> novasProducoes = new ArrayList<>();
+            for (String producao : producoes) {
+                if (!producao.matches("[A-Z].*")) {
+                    novasProducoes.add(producao);
+                }
+            }
+            gnfProductions.put(naoTerminal, novasProducoes);
+        }
+        // remove não-terminais inuteis
+        List<String> simbolosAcessiveis = new ArrayList<>();
+        simbolosAcessiveis.add(simboloInicial);
+        boolean simbolosAdicionados;
+        do {
+            simbolosAdicionados = false;
+            for (Map.Entry<String, List<String>> entry : cfgProductions.entrySet()) {
+                String naoTerminal = entry.getKey();
+                List<String> producoes = entry.getValue();
+                for (String producao : producoes) {
+                    boolean todosAcessiveis = true;
+                    for (char simbolo : producao.toCharArray()) {
+                        if (Character.isUpperCase(simbolo) && !simbolosAcessiveis.contains(String.valueOf(simbolo))) {
+                            todosAcessiveis = false;
+                            break;
+                        }
+                    }
+                    if (todosAcessiveis && !simbolosAcessiveis.contains(naoTerminal)) {
+                        simbolosAcessiveis.add(naoTerminal);
+                        simbolosAdicionados = true;
+                    }
+                }
+            }
+        } while (simbolosAdicionados);
+        // de novo
+        gnfProductions.keySet().retainAll(simbolosAcessiveis);
+        boolean producoesUnitariasEliminadas;
+        do {
+            producoesUnitariasEliminadas = false;
+            for (Map.Entry<String, List<String>> entry : gnfProductions.entrySet()) {
+                String naoTerminal = entry.getKey();
+                List<String> producoes = entry.getValue();
+                List<String> novasProducoes = new ArrayList<>();
+                for (String producao : producoes) {
+                    if (!producao.equals(naoTerminal) && producao.length() == 1 && Character.isUpperCase(producao.charAt(0))) {
+                        List<String> producoesUnitarias = gnfProductions.get(producao);
+                        novasProducoes.addAll(producoesUnitarias);
+                        producoesUnitariasEliminadas = true;
+                    } else {
+                        novasProducoes.add(producao);
+                    }
+                }
+                gnfProductions.put(naoTerminal, novasProducoes);
+            }
+        } while (producoesUnitariasEliminadas);
+        return gnfProductions;
+    }
+}
